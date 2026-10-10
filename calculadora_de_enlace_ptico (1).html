@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Enlace Óptico (Optical Power Budget)</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['IBM Plex Sans', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                        mono: ['IBM Plex Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            900: '#134e4a',
+                        },
+                        darkBg: '#0b0f17',
+                        darkCard: '#131b2e',
+                        darkBorder: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #0b0f17;
+            color: #f1f5f9;
+        }
+
+        /* Print styles for Report export */
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .print-card {
+                background: #ffffff !important;
+                border: 1px solid #cccccc !important;
+                color: #000000 !important;
+                box-shadow: none !important;
+            }
+            .print-text-dark {
+                color: #111827 !important;
+            }
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f17;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans bg-darkBg text-slate-100 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Navbar Navigation -->
+    <header class="no-print border-b border-slate-800 bg-darkCard/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-brand-500/10 rounded-lg text-brand-400 border border-brand-500/20">
+                    <i data-lucide="zap" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-lg sm:text-xl tracking-tight text-white flex items-center gap-2">
+                        OptiLink <span class="text-xs px-2 py-0.5 rounded bg-brand-500/20 text-brand-400 font-mono font-normal">PRO</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Calculadora de Orçamento de Potência Óptica (Power Budget)</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex space-x-1 sm:space-x-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                <button onclick="switchTab('calculator')" id="tab-calculator" class="tab-btn px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all flex items-center gap-2 bg-brand-500 text-white shadow">
+                    <i data-lucide="calculator" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Calculadora</span>
+                </button>
+                <button onclick="switchTab('reference')" id="tab-reference" class="tab-btn px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Referência</span>
+                </button>
+                <button onclick="switchTab('report')" id="tab-report" class="tab-btn px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Relatório</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Alert Box for Notifications -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-slate-800 border border-brand-500/30 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+            <i data-lucide="check-circle" class="w-5 h-5 text-brand-400"></i>
+            <span id="toast-message" class="text-sm">Notificação</span>
+        </div>
+    </div>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- TAB 1: CALCULATOR -->
+        <div id="content-calculator" class="tab-content space-y-6">
+            
+            <!-- Metadata & Project Header -->
+            <div class="bg-darkCard border border-slate-800 rounded-2xl p-4 sm:p-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Nome do Projeto / Cliente</label>
+                        <input type="text" id="project-name" placeholder="Ex: Enlace Anel Metropolitano" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Engenheiro / Responsável</label>
+                        <input type="text" id="project-author" placeholder="Ex: Eng. João Silva" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Identificador do Trecho</label>
+                        <input type="text" id="project-link" placeholder="Ex: POP-A -> POP-B" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Data da Análise</label>
+                        <input type="date" id="project-date" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500 transition-colors">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Core Grid: Parameters & Real-time Results -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- Left Column: Input Forms -->
+                <div class="lg:col-span-7 space-y-6">
+                    
+                    <!-- Transceivers & Wavelength -->
+                    <div class="bg-darkCard border border-slate-800 rounded-2xl p-5 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                            <h2 class="font-display font-semibold text-base text-white flex items-center gap-2">
+                                <i data-lucide="radio" class="w-5 h-5 text-brand-400"></i>
+                                Transceptores (SFP / Optoeletrônica)
+                            </h2>
+                            <span class="text-xs text-slate-400">Ptx & RX Sensitivity</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Modelo de Transceptor</label>
+                                <select id="transceiver-preset" onchange="handleTransceiverChange()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                                    <option value="sfp-1310-10km">SFP 10G - 1310nm SM (10 km)</option>
+                                    <option value="sfp-1310-40km">SFP+ 10G - 1310nm ER (40 km)</option>
+                                    <option value="sfp-1550-80km" selected>SFP+ 10G - 1550nm ZR (80 km)</option>
+                                    <option value="qsfp-1310-10km">QSFP28 100G - LR4 1310nm (10 km)</option>
+                                    <option value="mm-850-sx">SFP 1.25G - 850nm MM SX (550m)</option>
+                                    <option value="custom">-- Customizado / Inserir Manual --</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Comprimento de Onda ($\lambda$)</label>
+                                <select id="wavelength" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                                    <option value="1310">1310 nm (Monomodo)</option>
+                                    <option value="1550" selected>1550 nm (Monomodo - Baixa Atenuação)</option>
+                                    <option value="1625">1625 nm (Monit. OTDR / Monomodo)</option>
+                                    <option value="850">850 nm (Multimodo)</option>
+                                    <option value="1300">1300 nm (Multimodo)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Potência de Transmissão ($P_{tx}$ dBm)</label>
+                                <input type="number" step="0.1" id="tx-power" value="0.0" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono text-brand-400 focus:outline-none focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Sensibilidade do Receptor ($Sens_{rx}$ dBm)</label>
+                                <input type="number" step="0.1" id="rx-sensitivity" value="-24.0" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono text-amber-400 focus:outline-none focus:border-brand-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fiber Cable & Segment Length -->
+                    <div class="bg-darkCard border border-slate-800 rounded-2xl p-5 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                            <h2 class="font-display font-semibold text-base text-white flex items-center gap-2">
+                                <i data-lucide="git-commit" class="w-5 h-5 text-brand-400"></i>
+                                Cabo Óptico & Extensão
+                            </h2>
+                            <span class="text-xs text-slate-400">Fibra e Bobinas</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Tipo de Fibra Óptica</label>
+                                <select id="fiber-type" onchange="handleFiberChange()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                                    <option value="g652d" selected>Monomodo G.652.D (Padrão Terrestre)</option>
+                                    <option value="g655">Monomodo G.655 (NZDDF - DWDM)</option>
+                                    <option value="g657">Monomodo G.657 (Sensível a curvaturas / FTTH)</option>
+                                    <option value="om3">Multimodo OM3 (50/125 $\mu$m Laser Optimized)</option>
+                                    <option value="om4">Multimodo OM4 (50/125 $\mu$m Alta Velocidade)</option>
+                                    <option value="om1">Multimodo OM1 (62.5/125 $\mu$m Legado)</option>
+                                    <option value="custom">-- Atenuação Customizada --</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Atenuação Específica da Fibra ($\alpha$ dB/km)</label>
+                                <input type="number" step="0.01" id="fiber-attenuation" value="0.22" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-slate-200 focus:outline-none focus:border-brand-500">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Distância Total do Enlace (km)</label>
+                                <input type="number" step="0.1" min="0.1" id="link-distance" value="50" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-brand-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Tamanho Padrão do Rolo/Bobina (km)</label>
+                                <input type="number" step="0.5" min="0.5" id="spool-length" value="4.0" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-slate-200 focus:outline-none focus:border-brand-500">
+                                <span class="text-[10px] text-slate-500 mt-1 block">*Calcula emendas de fusão automaticamente</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Connectors, Splices & Margins -->
+                    <div class="bg-darkCard border border-slate-800 rounded-2xl p-5 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                            <h2 class="font-display font-semibold text-base text-white flex items-center gap-2">
+                                <i data-lucide="sliders" class="w-5 h-5 text-brand-400"></i>
+                                Eventos, Conexões & Margens
+                            </h2>
+                            <span class="text-xs text-slate-400">Perdas pontuais</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Par de Conectores</label>
+                                <div class="flex gap-2">
+                                    <input type="number" min="0" id="connector-count" value="2" oninput="calculateBudget()" class="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-sm font-mono text-center">
+                                    <input type="number" step="0.05" id="connector-loss" value="0.30" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs font-mono text-right" title="Perda por Conector (dB)">
+                                </div>
+                                <span class="text-[10px] text-slate-500">Qtd / Perda Unit. (dB)</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Emendas por Fusão</label>
+                                <div class="flex gap-2">
+                                    <input type="number" min="0" id="fusion-count" value="12" oninput="calculateBudget()" class="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-sm font-mono text-center">
+                                    <input type="number" step="0.01" id="fusion-loss" value="0.05" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs font-mono text-right" title="Perda por Fusão (dB)">
+                                </div>
+                                <span class="text-[10px] text-slate-500">Qtd / Perda Unit. (dB)</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Emendas Mecânicas</label>
+                                <div class="flex gap-2">
+                                    <input type="number" min="0" id="mechanical-count" value="0" oninput="calculateBudget()" class="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-sm font-mono text-center">
+                                    <input type="number" step="0.05" id="mechanical-loss" value="0.20" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs font-mono text-right" title="Perda por Emenda Mecânica (dB)">
+                                </div>
+                                <span class="text-[10px] text-slate-500">Qtd / Perda Unit. (dB)</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Margem de Segurança / Reparo (dB)</label>
+                                <input type="number" step="0.5" id="safety-margin" value="3.0" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-slate-200 focus:outline-none focus:border-brand-500">
+                                <span class="text-[10px] text-slate-500">Reserva para degradação/futuros reparos</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Atenuador / Outras Perdas (dB)</label>
+                                <input type="number" step="0.1" id="other-attenuation" value="0.0" oninput="calculateBudget()" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-slate-200 focus:outline-none focus:border-brand-500">
+                                <span class="text-[10px] text-slate-500">Splitters, atenuadores fixos ou WDM</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="pt-4 flex flex-wrap gap-3">
+                            <button onclick="resetCalculator()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Resetar
+                            </button>
+                            <button onclick="copySummary()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="copy" class="w-4 h-4"></i> Copiar Resumo
+                            </button>
+                            <button onclick="switchTab('report')" class="px-4 py-2 bg-brand-500/20 hover:bg-brand-500/30 text-brand-300 border border-brand-500/30 rounded-xl text-xs font-medium transition-colors ml-auto flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-4 h-4"></i> Ver Relatório
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Results & Interactive SVG Power Chart -->
+                <div class="lg:col-span-5 space-y-6">
+
+                    <!-- Main Status Display -->
+                    <div id="status-card" class="bg-darkCard border border-slate-800 rounded-2xl p-6 transition-all">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Viabilidade do Enlace</span>
+                            <span id="status-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                VIÁVEL
+                            </span>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800/80">
+                                <div class="text-xs text-slate-400">Potência Recebida Est. ($P_{rx}$ com margem)</div>
+                                <div class="flex items-baseline justify-between mt-1">
+                                    <div id="res-prx" class="text-3xl font-display font-bold font-mono text-brand-400">-17.60 dBm</div>
+                                    <div class="text-xs text-slate-400 font-mono">Sens: <span id="res-sens-target">-24.0 dBm</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Key Metrics Breakdown -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                    <span class="text-[11px] text-slate-400 block">Balanço do Transceptor</span>
+                                    <span id="res-power-budget" class="text-base font-bold font-mono text-slate-200">24.00 dB</span>
+                                </div>
+                                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                    <span class="text-[11px] text-slate-400 block">Atenuação Total Teórica</span>
+                                    <span id="res-total-attenuation" class="text-base font-bold font-mono text-slate-200">14.60 dB</span>
+                                </div>
+                                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                    <span class="text-[11px] text-slate-400 block">Atenuação + Margem</span>
+                                    <span id="res-attenuation-with-margin" class="text-base font-bold font-mono text-slate-200">17.60 dB</span>
+                                </div>
+                                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                                    <span class="text-[11px] text-slate-400 block">Margem Residual Efetiva</span>
+                                    <span id="res-effective-margin" class="text-base font-bold font-mono text-emerald-400">+6.40 dB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SVG Dynamic Optical Power Profile Chart -->
+                    <div class="bg-darkCard border border-slate-800 rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-display font-semibold text-sm text-white flex items-center gap-2">
+                                <i data-lucide="trending-down" class="w-4 h-4 text-brand-400"></i>
+                                Perfil de Potência Óptica no Trajeto
+                            </h3>
+                            <span class="text-[10px] text-slate-400 font-mono">0.0 km &rarr; <span id="chart-max-dist">50.0</span> km</span>
+                        </div>
+
+                        <!-- SVG Container -->
+                        <div class="relative w-full aspect-[16/10] bg-slate-900/90 rounded-xl p-3 border border-slate-800 overflow-hidden">
+                            <svg id="power-chart" class="w-full h-full" viewBox="0 0 500 280" preserveAspectRatio="none">
+                                <!-- Chart elements will be generated dynamically by JavaScript -->
+                            </svg>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 mt-3 px-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-0.5 bg-brand-400 inline-block"></span> Signal Path
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-0.5 bg-amber-400 border border-dashed border-amber-400 inline-block"></span> Sensibilidade RX
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3 h-0.5 bg-red-400 inline-block"></span> Com Margem
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Loss Itemization -->
+                    <div class="bg-darkCard border border-slate-800 rounded-2xl p-5 space-y-3">
+                        <h3 class="font-display font-semibold text-sm text-white border-b border-slate-800 pb-2">
+                            Detalhamento das Perdas
+                        </h3>
+                        <div class="space-y-2 text-xs font-mono">
+                            <div class="flex justify-between py-1 border-b border-slate-800/40">
+                                <span class="text-slate-400">Perda de Fibra (<span id="det-dist">50</span>km &times; <span id="det-alpha">0.22</span>dB)</span>
+                                <span id="det-fiber-loss" class="text-slate-200">11.00 dB</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-slate-800/40">
+                                <span class="text-slate-400">Conectores (<span id="det-conn-qty">2</span> &times; <span id="det-conn-unit">0.30</span>dB)</span>
+                                <span id="det-conn-loss" class="text-slate-200">0.60 dB</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-slate-800/40">
+                                <span class="text-slate-400">Fusões (<span id="det-fusion-qty">12</span> &times; <span id="det-fusion-unit">0.05</span>dB)</span>
+                                <span id="det-fusion-loss" class="text-slate-200">0.60 dB</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-slate-800/40">
+                                <span class="text-slate-400">Emendas Mecânicas (<span id="det-mech-qty">0</span> &times; <span id="det-mech-unit">0.20</span>dB)</span>
+                                <span id="det-mech-loss" class="text-slate-200">0.00 dB</span>
+                            </div>
+                            <div class="flex justify-between py-1 border-b border-slate-800/40">
+                                <span class="text-slate-400">Atenuadores / Outros</span>
+                                <span id="det-other-loss" class="text-slate-200">0.00 dB</span>
+                            </div>
+                            <div class="flex justify-between py-1 text-brand-400 font-semibold pt-1">
+                                <span>Margem de Segurança Adicionada</span>
+                                <span id="det-safety-margin">3.00 dB</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: REFERENCE TABLE -->
+        <div id="content-reference" class="tab-content hidden space-y-6">
+            <div class="bg-darkCard border border-slate-800 rounded-2xl p-6">
+                <h2 class="font-display font-bold text-xl text-white mb-2 flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-6 h-6 text-brand-400"></i>
+                    Tabelas de Referência Técnica (Normas ITU-T & Telecommunication Standards)
+                </h2>
+                <p class="text-sm text-slate-400 mb-6">Valores de atenuação e limites operacionais recomendados de acordo com as normas TIA/EIA-568 e ITU-T G.65x.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Fiber Attenuation Table -->
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                        <h3 class="font-display font-semibold text-sm text-brand-400 mb-3 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-4 h-4"></i> Atenuação Típica por Tipo de Fibra
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left text-slate-300">
+                                <thead class="bg-slate-800 text-slate-200 font-mono uppercase text-[10px]">
+                                    <tr>
+                                        <th class="p-2.5">Tipo de Fibra</th>
+                                        <th class="p-2.5">Comprimento ($\lambda$)</th>
+                                        <th class="p-2.5">Atenuação Típica</th>
+                                        <th class="p-2.5">Aplicações</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800 font-mono">
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">G.652.D (SM)</td>
+                                        <td class="p-2.5">1310 nm / 1550 nm</td>
+                                        <td class="p-2.5 text-brand-400">0.35 / 0.22 dB/km</td>
+                                        <td class="p-2.5 font-sans text-slate-400">Redes Metro, Backhaul, ISP</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">G.655 (NZDDF)</td>
+                                        <td class="p-2.5">1550 nm / 1625 nm</td>
+                                        <td class="p-2.5 text-brand-400">0.21 / 0.23 dB/km</td>
+                                        <td class="p-2.5 font-sans text-slate-400">Sistemas DWDM de Longa Distância</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">G.657.A1/A2</td>
+                                        <td class="p-2.5">1310 nm / 1550 nm</td>
+                                        <td class="p-2.5 text-brand-400">0.38 / 0.23 dB/km</td>
+                                        <td class="p-2.5 font-sans text-slate-400">FTTH, Caixas Drop, Edifícios</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">OM3 (MM 50/125)</td>
+                                        <td class="p-2.5">850 nm / 1300 nm</td>
+                                        <td class="p-2.5 text-amber-400">2.50 / 0.70 dB/km</td>
+                                        <td class="p-2.5 font-sans text-slate-400">Data Centers, LAN 10G (&lt;300m)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">OM4 (MM 50/125)</td>
+                                        <td class="p-2.5">850 nm / 1300 nm</td>
+                                        <td class="p-2.5 text-amber-400">2.30 / 0.60 dB/km</td>
+                                        <td class="p-2.5 font-sans text-slate-400">Data Centers, LAN 40G/100G (&lt;550m)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Passive Elements Loss Table -->
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                        <h3 class="font-display font-semibold text-sm text-brand-400 mb-3 flex items-center gap-2">
+                            <i data-lucide="git-merge" class="w-4 h-4"></i> Atenuação Típica de Componentes Passivos
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left text-slate-300">
+                                <thead class="bg-slate-800 text-slate-200 font-mono uppercase text-[10px]">
+                                    <tr>
+                                        <th class="p-2.5">Elemento / Evento</th>
+                                        <th class="p-2.5">Perda Típica</th>
+                                        <th class="p-2.5">Perda Máx. Permitida</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800 font-mono">
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">Emenda por Fusão (Fusion Splice)</td>
+                                        <td class="p-2.5 text-emerald-400">0.02 - 0.05 dB</td>
+                                        <td class="p-2.5 text-slate-400">0.10 dB</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">Emenda Mecânica</td>
+                                        <td class="p-2.5 text-amber-400">0.10 - 0.25 dB</td>
+                                        <td class="p-2.5 text-slate-400">0.50 dB</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">Par de Conectores (LC/SC/FC)</td>
+                                        <td class="p-2.5 text-brand-400">0.20 - 0.30 dB</td>
+                                        <td class="p-2.5 text-slate-400">0.50 dB (ANSI/TIA)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">Splitter PLC 1:2 / 1:4</td>
+                                        <td class="p-2.5 text-amber-400">3.5 dB / 7.2 dB</td>
+                                        <td class="p-2.5 text-slate-400">3.8 dB / 7.5 dB</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2.5 font-semibold text-white">Splitter PLC 1:8 / 1:16</td>
+                                        <td class="p-2.5 text-amber-400">10.5 dB / 13.8 dB</td>
+                                        <td class="p-2.5 text-slate-400">10.8 dB / 14.1 dB</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-slate-900/40 border border-slate-800 rounded-xl p-4 text-xs text-slate-400 leading-relaxed">
+                    <strong class="text-slate-200">Nota sobre Margem de Segurança:</strong> Recomenda-se adicionar uma margem de segurança de <span class="text-brand-400 font-mono">3.0 dB a 6.0 dB</span> para cobrir futura degradação por envelhecimento dos componentes, variação de temperatura, macrocurvaturas acidentais e emendas de manutenção pós-rompimento do cabo.
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: REPORT & EXPORT -->
+        <div id="content-report" class="tab-content hidden space-y-6">
+            <div class="no-print bg-darkCard border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                    <h2 class="font-display font-semibold text-base text-white">Relatório Técnico do Enlace</h2>
+                    <p class="text-xs text-slate-400">Pronto para exportação em PDF ou impressão técnica</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="window.print()" class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl text-xs transition-colors flex items-center gap-2 shadow-lg shadow-brand-500/20">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Imprimir / Salvar em PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Printable Report Area -->
+            <div id="printable-report" class="bg-darkCard print-card border border-slate-800 rounded-2xl p-8 space-y-6 text-slate-100 print-text-dark">
+                <!-- Report Header -->
+                <div class="flex justify-between items-start border-b border-slate-800 print:border-slate-300 pb-6">
+                    <div>
+                        <div class="flex items-center gap-2 text-brand-400 print:text-teal-700 font-display font-bold text-2xl">
+                            <i data-lucide="zap" class="w-6 h-6"></i> OptiLink PRO
+                        </div>
+                        <p class="text-xs text-slate-400 print:text-slate-600 mt-1">Relatório de Cálculo de Balanço de Potência Óptica</p>
+                    </div>
+                    <div class="text-right text-xs text-slate-400 print:text-slate-600 font-mono space-y-1">
+                        <div><strong>Data:</strong> <span id="rpt-date">-</span></div>
+                        <div><strong>Projeto:</strong> <span id="rpt-project-name" class="text-white print:text-black font-semibold">-</span></div>
+                        <div><strong>Responsável:</strong> <span id="rpt-project-author">-</span></div>
+                    </div>
+                </div>
+
+                <!-- Executive Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-slate-900/60 print:bg-slate-100 p-4 rounded-xl border border-slate-800 print:border-slate-300">
+                        <div class="text-xs text-slate-400 print:text-slate-600">Status de Engenharia</div>
+                        <div id="rpt-status" class="text-xl font-bold font-mono text-emerald-400 mt-1">VIÁVEL</div>
+                    </div>
+                    <div class="bg-slate-900/60 print:bg-slate-100 p-4 rounded-xl border border-slate-800 print:border-slate-300">
+                        <div class="text-xs text-slate-400 print:text-slate-600">Potência Chegada Est. ($P_{rx}$)</div>
+                        <div id="rpt-prx" class="text-xl font-bold font-mono text-brand-400 print:text-teal-700 mt-1">-17.60 dBm</div>
+                    </div>
+                    <div class="bg-slate-900/60 print:bg-slate-100 p-4 rounded-xl border border-slate-800 print:border-slate-300">
+                        <div class="text-xs text-slate-400 print:text-slate-600">Margem Residual Efetiva</div>
+                        <div id="rpt-margin" class="text-xl font-bold font-mono text-emerald-400 mt-1">+6.40 dB</div>
+                    </div>
+                </div>
+
+                <!-- Detailed Parameters Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <!-- Transmitter & Fiber Specs -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 print:text-slate-700 border-b border-slate-800 print:border-slate-300 pb-1">1. Especificações de Transmissão e Cabo</h4>
+                        <div class="space-y-1.5 text-xs font-mono">
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Identificação do Trecho:</span> <span id="rpt-link-id" class="font-semibold">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Comprimento de Onda ($\lambda$):</span> <span id="rpt-wave">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Potência Transmissão ($P_{tx}$):</span> <span id="rpt-ptx">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Sensibilidade Mínima Receptor ($Sens_{rx}$):</span> <span id="rpt-sens">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Tipo de Fibra:</span> <span id="rpt-fiber-type">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Atenuação Específica ($\alpha$):</span> <span id="rpt-alpha">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Distância Total:</span> <span id="rpt-dist">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Component & Losses Breakdown -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 print:text-slate-700 border-b border-slate-800 print:border-slate-300 pb-1">2. Inventário de Conexões e Perdas</h4>
+                        <div class="space-y-1.5 text-xs font-mono">
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Perda de Atenuação de Fibra:</span> <span id="rpt-fiber-loss">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Conectores Ópticos:</span> <span id="rpt-conn-loss">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Emendas por Fusão (Estimadas):</span> <span id="rpt-fusion-loss">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Emendas Mecânicas:</span> <span id="rpt-mech-loss">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Atenuadores / Outras Perdas:</span> <span id="rpt-other-loss">-</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 print:text-slate-600">Margem de Segurança Aplicada:</span> <span id="rpt-safety-loss">-</span></div>
+                            <div class="flex justify-between font-bold pt-1 border-t border-slate-800 print:border-slate-300 text-brand-400 print:text-black">
+                                <span>Atenuação Acumulada + Margem:</span>
+                                <span id="rpt-total-loss">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parecer Técnico / Technical Conclusion -->
+                <div class="bg-slate-900/40 print:bg-slate-50 p-4 rounded-xl border border-slate-800 print:border-slate-300 text-xs space-y-2">
+                    <h4 class="font-bold text-slate-200 print:text-black uppercase text-[11px]">Parecer Técnico de Viabilidade</h4>
+                    <p id="rpt-conclusion-text" class="text-slate-300 print:text-slate-800 leading-relaxed">
+                        O enlace apresenta um nível de potência estimado no receptor de -17.60 dBm, mantendo-se dentro dos limites operacionais com uma margem de segurança efetiva de 6.40 dB acima da sensibilidade limiar do receptor (-24.0 dBm).
+                    </p>
+                </div>
+
+                <!-- Sign-off Section for Printed Reports -->
+                <div class="print-only pt-12 grid grid-cols-2 gap-8 text-center text-xs">
+                    <div>
+                        <div class="border-t border-slate-400 pt-2">Engenheiro / Projetista Responsável</div>
+                    </div>
+                    <div>
+                        <div class="border-t border-slate-400 pt-2">Aprovação / Cliente</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="no-print border-t border-slate-800 bg-darkCard/50 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div>
+                OptiLink PRO &copy; 2026 - Calculadora de Link Budget Óptico
+            </div>
+            <div class="flex gap-4 text-slate-400">
+                <a href="https://github.com" target="_blank" rel="noopener" class="hover:text-brand-400 transition-colors flex items-center gap-1">
+                    <i data-lucide="github" class="w-3.5 h-3.5"></i> GitHub Ready
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Preset Database for Transceivers
+        const TRANSCEIVER_PRESETS = {
+            'sfp-1310-10km': { ptx: 0.0, sens: -14.0, wavelength: '1310' },
+            'sfp-1310-40km': { ptx: 0.0, sens: -20.0, wavelength: '1310' },
+            'sfp-1550-80km': { ptx: 0.0, sens: -24.0, wavelength: '1550' },
+            'qsfp-1310-10km': { ptx: -4.3, sens: -8.6, wavelength: '1310' },
+            'mm-850-sx': { ptx: -9.5, sens: -17.0, wavelength: '850' }
+        };
+
+        // Fiber Default Attenuation Coefficients (dB/km)
+        const FIBER_PRESETS = {
+            'g652d': { '1310': 0.35, '1550': 0.22, '1625': 0.24, '850': 3.0, '1300': 1.0 },
+            'g655':  { '1310': 0.40, '1550': 0.21, '1625': 0.23, '850': 3.0, '1300': 1.0 },
+            'g657':  { '1310': 0.35, '1550': 0.23, '1625': 0.25, '850': 3.0, '1300': 1.0 },
+            'om3':   { '850': 2.50, '1300': 0.70, '1310': 1.0,  '1550': 1.0,  '1625': 1.0 },
+            'om4':   { '850': 2.30, '1300': 0.60, '1310': 1.0,  '1550': 1.0,  '1625': 1.0 },
+            'om1':   { '850': 3.20, '1300': 0.90, '1310': 1.0,  '1550': 1.0,  '1625': 1.0 }
+        };
+
+        // Tab Navigation Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-500', 'text-white', 'shadow');
+                btn.classList.add('text-slate-400');
+            });
+
+            document.getElementById(`content-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            activeBtn.classList.add('bg-brand-500', 'text-white', 'shadow');
+            activeBtn.classList.remove('text-slate-400');
+
+            if (tabId === 'report') {
+                updateReportFields();
+            }
+        }
+
+        // Handle Preset Transceiver Selection
+        function handleTransceiverChange() {
+            const select = document.getElementById('transceiver-preset');
+            const val = select.value;
+            if (val !== 'custom' && TRANSCEIVER_PRESETS[val]) {
+                const item = TRANSCEIVER_PRESETS[val];
+                document.getElementById('tx-power').value = item.ptx;
+                document.getElementById('rx-sensitivity').value = item.sens;
+                document.getElementById('wavelength').value = item.wavelength;
+                handleFiberChange();
+            }
+            calculateBudget();
+        }
+
+        // Handle Fiber Type or Wavelength updates
+        function handleFiberChange() {
+            const fiber = document.getElementById('fiber-type').value;
+            const wave = document.getElementById('wavelength').value;
+
+            if (fiber !== 'custom' && FIBER_PRESETS[fiber]) {
+                const att = FIBER_PRESETS[fiber][wave] || 0.25;
+                document.getElementById('fiber-attenuation').value = att;
+            }
+            calculateBudget();
+        }
+
+        // Auto-calculate Splices from spool length
+        function autoCalculateFusionSplices(distance, spoolLen) {
+            if (spoolLen > 0 && distance > spoolLen) {
+                return Math.floor(distance / spoolLen);
+            }
+            return 0;
+        }
+
+        // Main Calculation Engine
+        function calculateBudget() {
+            // Inputs
+            const ptx = parseFloat(document.getElementById('tx-power').value) || 0;
+            const sensRx = parseFloat(document.getElementById('rx-sensitivity').value) || 0;
+            const distance = parseFloat(document.getElementById('link-distance').value) || 0;
+            const alpha = parseFloat(document.getElementById('fiber-attenuation').value) || 0;
+            const spoolLen = parseFloat(document.getElementById('spool-length').value) || 4.0;
+
+            // Auto calculate splices if user didn't overwrite manually
+            const autoSplices = autoCalculateFusionSplices(distance, spoolLen);
+            const fusionInput = document.getElementById('fusion-count');
+            if (document.activeElement !== fusionInput) {
+                fusionInput.value = autoSplices;
+            }
+
+            const connQty = parseInt(document.getElementById('connector-count').value) || 0;
+            const connLossUnit = parseFloat(document.getElementById('connector-loss').value) || 0;
+
+            const fusionQty = parseInt(fusionInput.value) || 0;
+            const fusionLossUnit = parseFloat(document.getElementById('fusion-loss').value) || 0;
+
+            const mechQty = parseInt(document.getElementById('mechanical-count').value) || 0;
+            const mechLossUnit = parseFloat(document.getElementById('mechanical-loss').value) || 0;
+
+            const safetyMargin = parseFloat(document.getElementById('safety-margin').value) || 0;
+            const otherLoss = parseFloat(document.getElementById('other-attenuation').value) || 0;
+
+            // Calculations
+            const fiberLoss = distance * alpha;
+            const connLossTotal = connQty * connLossUnit;
+            const fusionLossTotal = fusionQty * fusionLossUnit;
+            const mechLossTotal = mechQty * mechLossUnit;
+
+            const theoreticalAtt = fiberLoss + connLossTotal + fusionLossTotal + mechLossTotal + otherLoss;
+            const totalAttWithMargin = theoreticalAtt + safetyMargin;
+
+            const prxEstimated = ptx - totalAttWithMargin;
+            const transceiverPowerBudget = ptx - sensRx;
+            const effectiveMargin = prxEstimated - sensRx;
+
+            const isFeasible = effectiveMargin >= 0;
+
+            // Update UI Numerical Results
+            document.getElementById('res-prx').innerText = `${prxEstimated.toFixed(2)} dBm`;
+            document.getElementById('res-power-budget').innerText = `${transceiverPowerBudget.toFixed(2)} dB`;
+            document.getElementById('res-total-attenuation').innerText = `${theoreticalAtt.toFixed(2)} dB`;
+            document.getElementById('res-attenuation-with-margin').innerText = `${totalAttWithMargin.toFixed(2)} dB`;
+            document.getElementById('res-sens-target').innerText = `${sensRx.toFixed(1)} dBm`;
+
+            const effMarginEl = document.getElementById('res-effective-margin');
+            effMarginEl.innerText = `${effectiveMargin >= 0 ? '+' : ''}${effectiveMargin.toFixed(2)} dB`;
+            effMarginEl.className = `text-base font-bold font-mono ${isFeasible ? 'text-emerald-400' : 'text-red-400'}`;
+
+            // Update UI Status Badge
+            const badge = document.getElementById('status-badge');
+            const card = document.getElementById('status-card');
+
+            if (isFeasible) {
+                badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> VIÁVEL`;
+                card.className = "bg-darkCard border border-slate-800 rounded-2xl p-6 transition-all";
+            } else {
+                badge.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-red-500/10 text-red-400 border border-red-500/20 flex items-center gap-1.5";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span> INVIÁVEL`;
+                card.className = "bg-darkCard border border-red-500/30 rounded-2xl p-6 transition-all";
+            }
+
+            // Update Detailed Breakdown
+            document.getElementById('det-dist').innerText = distance;
+            document.getElementById('det-alpha').innerText = alpha.toFixed(2);
+            document.getElementById('det-fiber-loss').innerText = `${fiberLoss.toFixed(2)} dB`;
+
+            document.getElementById('det-conn-qty').innerText = connQty;
+            document.getElementById('det-conn-unit').innerText = connLossUnit.toFixed(2);
+            document.getElementById('det-conn-loss').innerText = `${connLossTotal.toFixed(2)} dB`;
+
+            document.getElementById('det-fusion-qty').innerText = fusionQty;
+            document.getElementById('det-fusion-unit').innerText = fusionLossUnit.toFixed(2);
+            document.getElementById('det-fusion-loss').innerText = `${fusionLossTotal.toFixed(2)} dB`;
+
+            document.getElementById('det-mech-qty').innerText = mechQty;
+            document.getElementById('det-mech-unit').innerText = mechLossUnit.toFixed(2);
+            document.getElementById('det-mech-loss').innerText = `${mechLossTotal.toFixed(2)} dB`;
+
+            document.getElementById('det-other-loss').innerText = `${otherLoss.toFixed(2)} dB`;
+            document.getElementById('det-safety-margin').innerText = `${safetyMargin.toFixed(2)} dB`;
+
+            // Draw SVG Graph
+            renderPowerChart(distance, ptx, prxEstimated, sensRx, totalAttWithMargin, theoreticalAtt);
+        }
+
+        // Render Interactive Optical Power Chart in SVG
+        function renderPowerChart(dist, ptx, prxWithMargin, sensRx, totalLossWithMargin, theoreticalAtt) {
+            const svg = document.getElementById('power-chart');
+            document.getElementById('chart-max-dist').innerText = dist.toFixed(1);
+
+            const width = 500;
+            const height = 280;
+            const padding = { top: 30, right: 30, bottom: 40, left: 50 };
+
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            // Y Min and Max
+            const minY = Math.min(sensRx - 5, prxWithMargin - 5);
+            const maxY = Math.max(ptx + 5, 5);
+
+            const scaleX = (x) => padding.left + (x / (dist || 1)) * chartWidth;
+            const scaleY = (y) => padding.top + chartHeight - ((y - minY) / (maxY - minY)) * chartHeight;
+
+            const ptxY = scaleY(ptx);
+            const prxTheoY = scaleY(ptx - theoreticalAtt);
+            const prxMarginY = scaleY(prxWithMargin);
+            const sensY = scaleY(sensRx);
+
+            let html = `
+                <!-- Grid Lines -->
+                <line x1="${padding.left}" y1="${scaleY(0)}" x2="${width - padding.right}" y2="${scaleY(0)}" stroke="#334155" stroke-dasharray="3,3" />
+                <line x1="${padding.left}" y1="${sensY}" x2="${width - padding.right}" y2="${sensY}" stroke="#f59e0b" stroke-dasharray="4,4" stroke-width="1.5" />
+                <text x="${width - padding.right - 5}" y="${sensY - 5}" fill="#f59e0b" font-size="10" font-family="monospace" text-anchor="end">Sens. RX (${sensRx} dBm)</text>
+
+                <!-- Signal Line Theoretical -->
+                <line x1="${scaleX(0)}" y1="${ptxY}" x2="${scaleX(dist)}" y2="${prxTheoY}" stroke="#2dd4bf" stroke-width="2.5" />
+
+                <!-- Signal Line With Safety Margin -->
+                <line x1="${scaleX(0)}" y1="${ptxY}" x2="${scaleX(dist)}" y2="${prxMarginY}" stroke="#f87171" stroke-width="2" stroke-dasharray="5,5" />
+
+                <!-- Point Nodes -->
+                <circle cx="${scaleX(0)}" cy="${ptxY}" r="4" fill="#2dd4bf" />
+                <circle cx="${scaleX(dist)}" cy="${prxTheoY}" r="4" fill="#2dd4bf" />
+                <circle cx="${scaleX(dist)}" cy="${prxMarginY}" r="4" fill="#f87171" />
+
+                <!-- Data Labels -->
+                <text x="${scaleX(0) + 8}" y="${ptxY - 8}" fill="#2dd4bf" font-size="11" font-weight="bold" font-family="monospace">Ptx: ${ptx} dBm</text>
+                <text x="${scaleX(dist) - 8}" y="${prxMarginY + 15}" fill="#f87171" font-size="10" font-weight="bold" font-family="monospace" text-anchor="end">Prx (c/ Margem): ${prxWithMargin.toFixed(1)} dBm</text>
+
+                <!-- Axes -->
+                <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${height - padding.bottom}" stroke="#475569" stroke-width="1.5" />
+                <line x1="${padding.left}" y1="${height - padding.bottom}" x2="${width - padding.right}" y2="${height - padding.bottom}" stroke="#475569" stroke-width="1.5" />
+
+                <!-- Axis Labels -->
+                <text x="${width / 2}" y="${height - 10}" fill="#94a3b8" font-size="10" text-anchor="middle">Distância do Enlace (km)</text>
+                <text x="15" y="${height / 2}" fill="#94a3b8" font-size="10" text-anchor="middle" transform="rotate(-90 15 ${height / 2})">Potência (dBm)</text>
+            `;
+
+            svg.innerHTML = html;
+        }
+
+        // Update Technical Report
+        function updateReportFields() {
+            const today = document.getElementById('project-date').value || new Date().toISOString().split('T')[0];
+            document.getElementById('rpt-date').innerText = today;
+            document.getElementById('rpt-project-name').innerText = document.getElementById('project-name').value || "Enlace não nomeado";
+            document.getElementById('rpt-project-author').innerText = document.getElementById('project-author').value || "Não informado";
+            document.getElementById('rpt-link-id').innerText = document.getElementById('project-link').value || "Trecho A - B";
+
+            document.getElementById('rpt-wave').innerText = `${document.getElementById('wavelength').value} nm`;
+            document.getElementById('rpt-ptx').innerText = `${document.getElementById('tx-power').value} dBm`;
+            document.getElementById('rpt-sens').innerText = `${document.getElementById('rx-sensitivity').value} dBm`;
+
+            const fiberSelect = document.getElementById('fiber-type');
+            document.getElementById('rpt-fiber-type').innerText = fiberSelect.options[fiberSelect.selectedIndex].text;
+            document.getElementById('rpt-alpha').innerText = `${document.getElementById('fiber-attenuation').value} dB/km`;
+            document.getElementById('rpt-dist').innerText = `${document.getElementById('link-distance').value} km`;
+
+            document.getElementById('rpt-fiber-loss').innerText = document.getElementById('det-fiber-loss').innerText;
+            document.getElementById('rpt-conn-loss').innerText = `${document.getElementById('connector-count').value} x Conectores (${document.getElementById('det-conn-loss').innerText})`;
+            document.getElementById('rpt-fusion-loss').innerText = `${document.getElementById('fusion-count').value} x Fusões (${document.getElementById('det-fusion-loss').innerText})`;
+            document.getElementById('rpt-mech-loss').innerText = `${document.getElementById('mechanical-count').value} x Mecânicas (${document.getElementById('det-mech-loss').innerText})`;
+            document.getElementById('rpt-other-loss').innerText = document.getElementById('det-other-loss').innerText;
+            document.getElementById('rpt-safety-loss').innerText = document.getElementById('det-safety-margin').innerText;
+            document.getElementById('rpt-total-loss').innerText = document.getElementById('res-attenuation-with-margin').innerText;
+
+            const statusText = document.getElementById('status-badge').innerText.trim();
+            const prxVal = document.getElementById('res-prx').innerText;
+            const marginVal = document.getElementById('res-effective-margin').innerText;
+            const sensVal = document.getElementById('res-sens-target').innerText;
+
+            const rptStatusEl = document.getElementById('rpt-status');
+            rptStatusEl.innerText = statusText;
+            rptStatusEl.className = `text-xl font-bold font-mono ${statusText.includes('VIÁVEL') && !statusText.includes('INVIÁVEL') ? 'text-emerald-400 print:text-emerald-700' : 'text-red-400 print:text-red-700'}`;
+
+            document.getElementById('rpt-prx').innerText = prxVal;
+            document.getElementById('rpt-margin').innerText = marginVal;
+
+            const conclusionEl = document.getElementById('rpt-conclusion-text');
+            if (statusText.includes('VIÁVEL') && !statusText.includes('INVIÁVEL')) {
+                conclusionEl.innerText = `O enlace atende plenamente aos requisitos operacionais. A potência óptica de chegada estimada no receptor é de ${prxVal}, garantindo uma margem residual de ${marginVal} em relação ao limite de sensibilidade do receptor (${sensVal}). Recomendado para aprovação e ativação.`;
+            } else {
+                conclusionEl.innerText = `ATENÇÃO: O enlace foi classificado como INVIÁVEL nas condições simuladas. A potência calculada no receptor (${prxVal}) fica abaixo do limite operacional (${sensVal}), gerando um déficit de ${marginVal}. Recomenda-se utilizar transceptores de maior potência/alcance, substituir conectores por fusões ou revisar a distância do trecho.`;
+            }
+        }
+
+        // Reset All Inputs
+        function resetCalculator() {
+            document.getElementById('project-name').value = '';
+            document.getElementById('project-author').value = '';
+            document.getElementById('project-link').value = '';
+            document.getElementById('transceiver-preset').value = 'sfp-1550-80km';
+            document.getElementById('link-distance').value = '50';
+            document.getElementById('spool-length').value = '4.0';
+            document.getElementById('connector-count').value = '2';
+            document.getElementById('connector-loss').value = '0.30';
+            document.getElementById('mechanical-count').value = '0';
+            document.getElementById('mechanical-loss').value = '0.20';
+            document.getElementById('safety-margin').value = '3.0';
+            document.getElementById('other-attenuation').value = '0.0';
+
+            handleTransceiverChange();
+            showToast("Calculadora resetada para os valores padrão.");
+        }
+
+        // Copy Results Summary to Clipboard
+        function copySummary() {
+            const prx = document.getElementById('res-prx').innerText;
+            const margin = document.getElementById('res-effective-margin').innerText;
+            const status = document.getElementById('status-badge').innerText.trim();
+            const dist = document.getElementById('link-distance').value;
+            const totalAtt = document.getElementById('res-attenuation-with-margin').innerText;
+
+            const summaryText = `--- OptiLink PRO - Resumo do Enlace ---
+Distância Total: ${dist} km
+Atenuação Total (+Margem): ${totalAtt}
+Potência RX Est. (Prx): ${prx}
+Margem Efetiva: ${margin}
+Status: ${status}`;
+
+            // ExecCommand Fallback for clipboard compatibility
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = summaryText;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempTextArea);
+
+            showToast("Resumo copiado para a área de transferência!");
+        }
+
+        // Display Toast Alerts
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Initialize application on window load
+        window.onload = function() {
+            document.getElementById('project-date').value = new Date().toISOString().split('T')[0];
+            handleTransceiverChange();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
